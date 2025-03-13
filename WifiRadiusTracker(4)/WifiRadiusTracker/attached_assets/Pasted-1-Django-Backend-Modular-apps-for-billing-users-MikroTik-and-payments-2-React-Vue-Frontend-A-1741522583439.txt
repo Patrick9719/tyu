@@ -1,0 +1,30 @@
+1.Django Backend – Modular apps for billing, users, MikroTik, and payments
+2.React/Vue Frontend – Admin dashboard & user portal forpackage selection without login or registration required
+3.MikroTik API Integration – Automate session handling, Authenticate users with MikroTik, Control sessions (start, extend, disconnect), Apply bandwidth limits based on users
+4.M-Pesa Payments – Secure STK push & webhook handling, STK Push API – Allow users to pay via M-Pesa,  Webhook Handling – Automatically process payments, Transaction Verification – Ensure only valid payments grant internet access
+for admin dashboard
+5.AI-Powered Analytics – Usage trends, fraud detection
+6.Voucher System – Prepaid access codes
+7.RBAC & Security – Admin role management, 2FA , Custom User Model with Role-Based Access Control (RBAC),Admin & User Authentication API
+8.Real-Time Monitoring – Active users, revenue reports,
+9.Real-Time Payment Status – Show payment status without requiring a page refresh.
+10.Session Expiry Timer – Display remaining time for an active session.
+11.Promo Codes & Discounts – Allow users to apply discount codes.
+12.Multi-Currency Support – Support other payment options.
+13.Dark Mode Toggle – Let users switch between light and dark themes for usersand admin
+14.Device Limit Per User – Restrict how many devices a user can connect with one voucher.
+15.Bandwidth Control – Set different download/upload speed limits per package.
+16.Voucher Expiry – Set expiration dates for vouchers.
+17.User Management – See active sessions, disconnect users, and track usage per voucher.
+18.Voucher Usage Logs – Track which vouchers were used, when, and by which device.
+19.Session Auto-Extension – Extend sessions if users purchase another package before expiry.
+20.Customizable Fair Usage Policy – Dynamically adjust speeds based on active user count.
+21.AI-Powered Fraud Detection – Detect fake payments or unusual login patterns.
+22.Discount & Promotions System – Offer discounts on bulk purchases or for repeat users.
+23.QR Code Login – Users scan a QR code to connect instead of entering credentials.
+24.Email & SMS Alerts – Notify users about expiring sessions, promotions, or network issues.
+25.Automated Reports – Generate daily, weekly, and monthly revenue and usage reports.
+26.Admin Activity Logging – Track admin actions for security auditing.
+27.Multi-Router Load Balancing – Distribute users across multiple MikroTik routers for stability.
+28.Allow users to **install the web app** on mobile/home screen for instant access
+29.Implement **real-time notifications** for users about:

@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h1 class="mb-4">Admin Dashboard</h1>
+        
+        <!-- Dashboard Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card dashboard-stat bg-primary text-white">
+                    <div class="card-body">
+                        <i class="fas fa-users"></i>
+                        <div class="stat-value">{{ active_users_count }}</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card dashboard-stat bg-success text-white">
+                    <div class="card-body">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <div class="stat-value">KES {{ daily_revenue }}</div>
+                        <div class="stat-label">Today's Revenue</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card dashboard-stat bg-info text-white">
+                    <div class="card-body">
+                        <i class="fas fa-chart-line"></i>
+                        <div class="stat-value">KES {{ weekly_revenue }}</div>
+                        <div class="stat-label">Weekly Revenue</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card dashboard-stat bg-dark text-white">
+                    <div class="card-body">
+                        <i class="fas fa-user-check"></i>
+                        <div class="stat-value">{{ user_count }}</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Sessions -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-wifi me-2"></i> Active Sessions</h5>
+                <span class="badge bg-light text-primary">{{ active_sessions|length }} active</span>
+            </div>
+            <div class="card-body">
+                {% if active_sessions %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="active-sessions-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Package</th>
+                                <th>IP Address</th>
+                                <th>MAC Address</th>
+                                <th>Start Time</th>
+                                <th>Remaining</th>
+                                <th>Download</th>
+                                <th>Upload</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in active_sessions %}
+                            <tr data-session-id="{{ session.id }}">
+                                <td>{{ session.user.username }}</td>
+                                <td>{{ session.package.name }}</td>
+                                <td>{{ session.ip_address or 'N/A' }}</td>
+                                <td>{{ session.mac_address or 'N/A' }}</td>
+                                <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td class="remaining-time">
+                                    {% if session.is_active and session.end_time %}
+                                        {% set remaining = (session.end_time - session.start_time).total_seconds() %}
+                                        {{ '{:02d}:{:02d}:{:02d}'.format(
+                                            remaining // 3600,
+                                            (remaining % 3600) // 60,
+                                            remaining % 60
+                                        ) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td class="download-usage">0 B</td>
+                                <td class="upload-usage">0 B</td>
+                                <td class="session-status">
+                                    <span class="status-badge status-active">Active</span>
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('admin.disconnect_session', session_id=session.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times-circle"></i> Disconnect
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center py-4">No active sessions found.</p>
+                {% endif %}
+                
+                <div class="text-end mt-3">
+                    <a href="{{ url_for('admin.sessions') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> View All Sessions
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- MikroTik Active Users -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-server me-2"></i> MikroTik Active Users</h5>
+                <span class="badge bg-light text-dark">{{ mikrotik_users|length }} active</span>
+            </div>
+            <div class="card-body">
+                {% if mikrotik_users %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>IP Address</th>
+                                <th>MAC Address</th>
+                                <th>Uptime</th>
+                                <th>Download</th>
+                                <th>Upload</th>
+                                <th>Login By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in mikrotik_users %}
+                            <tr>
+                                <td>{{ user.get('user', 'N/A') }}</td>
+                                <td>{{ user.get('address', 'N/A') }}</td>
+                                <td>{{ user.get('mac-address', 'N/A') }}</td>
+                                <td>{{ user.get('uptime', 'N/A') }}</td>
+                                <td>{{ (user.get('bytes-in', 0)|int / 1024)|round(2) }} KB</td>
+                                <td>{{ (user.get('bytes-out', 0)|int / 1024)|round(2) }} KB</td>
+                                <td>{{ user.get('login-by', 'N/A') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center py-4">No MikroTik active users found.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Payments -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Recent Payments</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_payments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>User</th>
+                                <th>Package</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Transaction ID</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in recent_payments %}
+                            <tr>
+                                <td>{{ payment.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ payment.user.username }}</td>
+                                <td>{{ payment.package.name }}</td>
+                                <td>KES {{ payment.amount }}</td>
+                                <td>{{ payment.payment_method }}</td>
+                                <td>
+                                    {% if payment.mpesa_receipt %}
+                                        {{ payment.mpesa_receipt }}
+                                    {% else %}
+                                        {{ payment.transaction_id }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if payment.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif payment.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center py-4">No recent payments found.</p>
+                {% endif %}
+                
+                <div class="text-end mt-3">
+                    <a href="{{ url_for('admin.payments') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> View All Payments
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-link me-2"></i> Quick Links</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary d-block py-3">
+                            <i class="fas fa-users fa-2x mb-2"></i><br>
+                            Manage Users
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('admin.packages') }}" class="btn btn-outline-primary d-block py-3">
+                            <i class="fas fa-boxes fa-2x mb-2"></i><br>
+                            Manage Packages
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('admin.vouchers') }}" class="btn btn-outline-primary d-block py-3">
+                            <i class="fas fa-ticket-alt fa-2x mb-2"></i><br>
+                            Manage Vouchers
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-primary d-block py-3">
+                            <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                            View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+    // Initialize session usage updates
+    document.addEventListener('DOMContentLoaded', function() {
+        const sessionRows = document.querySelectorAll('#active-sessions-table tbody tr');
+        sessionRows.forEach(row => {
+            const sessionId = row.dataset.sessionId;
+            
+            // Fetch initial session data
+            fetch(`/session/${sessionId}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.active) {
+                        // Update usage data
+                        const downloadCell = row.querySelector('.download-usage');
+                        const uploadCell = row.querySelector('.upload-usage');
+                        
+                        if (downloadCell) downloadCell.textContent = data.usage.download_formatted;
+                        if (uploadCell) uploadCell.textContent = data.usage.upload_formatted;
+                    }
+                })
+                .catch(error => console.error('Error fetching session data:', error));
+        });
+        
+        // Set up periodic updates every 30 seconds
+        setInterval(() => {
+            sessionRows.forEach(row => {
+                const sessionId = row.dataset.sessionId;
+                
+                fetch(`/session/${sessionId}/status`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.active) {
+                                // Update usage data
+                                const downloadCell = row.querySelector('.download-usage');
+                                const uploadCell = row.querySelector('.upload-usage');
+                                const remainingCell = row.querySelector('.remaining-time');
+                                
+                                if (downloadCell) downloadCell.textContent = data.usage.download_formatted;
+                                if (uploadCell) uploadCell.textContent = data.usage.upload_formatted;
+                                if (remainingCell) {
+                                    const hours = data.remaining_time.hours.toString().padStart(2, '0');
+                                    const minutes = data.remaining_time.minutes.toString().padStart(2, '0');
+                                    const seconds = data.remaining_time.seconds.toString().padStart(2, '0');
+                                    remainingCell.textContent = `${hours}:${minutes}:${seconds}`;
+                                }
+                            } else {
+                                // Mark session as inactive
+                                const statusCell = row.querySelector('.session-status');
+                                if (statusCell) {
+                                    statusCell.innerHTML = '<span class="status-badge status-inactive">Inactive</span>';
+                                }
+                                row.classList.add('table-secondary');
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error updating session data:', error));
+            });
+        }, 30000);
+    });
+</script>
+{% endblock %}

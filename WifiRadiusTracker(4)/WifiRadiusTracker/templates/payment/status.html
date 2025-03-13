@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Status - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i> Payment Status</h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- Payment Status Information -->
+                <div id="payment-status-container" class="alert {% if payment.status == 'completed' %}alert-success{% elif payment.status == 'failed' %}alert-danger{% else %}alert-info payment-pending{% endif %} text-center">
+                    <h3 id="payment-status">
+                        {% if payment.status == 'completed' %}
+                            Payment Completed
+                        {% elif payment.status == 'failed' %}
+                            Payment Failed
+                        {% else %}
+                            Payment Pending
+                        {% endif %}
+                    </h3>
+                </div>
+                
+                <!-- Payment Details -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Payment Details</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Package:</strong> {{ payment.package.name }}</p>
+                                <p><strong>Amount:</strong> KES {{ payment.amount }}</p>
+                                <p><strong>Payment Method:</strong> {{ payment.payment_method|capitalize }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+                                <p><strong>Date:</strong> {{ payment.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                                <p><strong>Phone Number:</strong> {{ payment.phone_number }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Status Specific Content -->
+                <div id="payment-pending" class="{% if payment.status != 'pending' %}d-none{% endif %}">
+                    <div class="text-center mb-4">
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
+                        </div>
+                        <p class="mt-3">Please check your phone and complete the payment...</p>
+                        <p class="text-muted small">This page will update automatically when payment is complete.</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Payment Instructions</h5>
+                            <ol>
+                                <li>You will receive an M-Pesa payment request on your phone.</li>
+                                <li>Enter your M-Pesa PIN to authorize the payment.</li>
+                                <li>Once payment is complete, you will be connected automatically.</li>
+                            </ol>
+                            <p class="mb-0 text-muted">If you don't receive the M-Pesa prompt, please check your phone and ensure you have sufficient balance.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="payment-success" class="{% if payment.status != 'completed' %}d-none{% endif %}">
+                    <div class="text-center mb-4">
+                        <div class="success-icon">
+                            <i class="fas fa-check-circle fa-5x text-success"></i>
+                        </div>
+                        <h4 class="mt-3">Thank You!</h4>
+                        <p>Your payment has been processed successfully.</p>
+                        <p>You are now connected to the internet.</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">
+                            <i class="fas fa-tachometer-alt me-1"></i> Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+                
+                <div id="payment-failed" class="{% if payment.status != 'failed' %}d-none{% endif %}">
+                    <div class="text-center mb-4">
+                        <div class="failed-icon">
+                            <i class="fas fa-times-circle fa-5x text-danger"></i>
+                        </div>
+                        <h4 class="mt-3">Payment Failed</h4>
+                        <p>We couldn't process your payment.</p>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Possible Reasons</h5>
+                            <ul>
+                                <li>Insufficient balance in your M-Pesa account</li>
+                                <li>Wrong M-Pesa PIN entered</li>
+                                <li>Payment request cancelled or timed out</li>
+                                <li>Technical issues with the payment gateway</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                            <i class="fas fa-redo me-1"></i> Try Again
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    {% if payment.status == 'pending' %}
+    // Start checking payment status
+    const paymentCheckInterval = checkPaymentStatus({{ payment.id }}, 5000);
+    
+    // Show a notification about the pending payment
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for notification system to initialize
+        setTimeout(() => {
+            NotificationSystem.info(
+                'Please check your phone and confirm the payment on your M-Pesa app.',
+                'Payment Processing',
+                { duration: 10000 }
+            );
+        }, 1000);
+    });
+    
+    // Stop checking after 5 minutes (300000 ms)
+    setTimeout(() => {
+        clearInterval(paymentCheckInterval);
+        
+        // If still on this page, show timeout message
+        if (document.getElementById('payment-status').textContent.includes('Pending')) {
+            document.getElementById('payment-status').textContent = 'Payment Timed Out';
+            document.getElementById('payment-status-container').className = 'alert alert-warning';
+            document.getElementById('payment-pending').innerHTML = `
+                <div class="text-center mb-4">
+                    <div class="warning-icon">
+                        <i class="fas fa-exclamation-triangle fa-5x text-warning"></i>
+                    </div>
+                    <h4 class="mt-3">Payment Request Timed Out</h4>
+                    <p>We haven't received a response from M-Pesa within the expected time.</p>
+                    <p>If you completed the payment, please check your dashboard. Otherwise, you can try again.</p>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                        <i class="fas fa-redo me-1"></i> Try Again
+                    </a>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-tachometer-alt me-1"></i> Check Dashboard
+                    </a>
+                </div>
+            `;
+            
+            // Show timeout notification
+            NotificationSystem.warning(
+                'Payment request has timed out. If you completed the payment, please check your dashboard.',
+                'Payment Timeout',
+                { duration: 0, autoHide: false }
+            );
+        }
+    }, 300000);
+    {% elif payment.status == 'completed' %}
+    // Show success notification on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for notification system to initialize
+        setTimeout(() => {
+            NotificationSystem.success(
+                'Your payment has been processed successfully. You are now connected to the internet.',
+                'Payment Successful',
+                { duration: 8000 }
+            );
+        }, 1000);
+    });
+    {% elif payment.status == 'failed' %}
+    // Show failure notification on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for notification system to initialize
+        setTimeout(() => {
+            NotificationSystem.error(
+                'We couldn\'t process your payment. Please check your M-Pesa balance and try again.',
+                'Payment Failed',
+                { duration: 8000 }
+            );
+        }, 1000);
+    });
+    {% endif %}
+    
+    // Update the checkPaymentStatus function to show notifications
+    const originalCheckPaymentStatus = window.checkPaymentStatus;
+    window.checkPaymentStatus = function(paymentId, interval) {
+        const intervalId = originalCheckPaymentStatus(paymentId, interval);
+        
+        // Override fetch to show notifications on status change
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            const result = originalFetch.apply(this, args);
+            
+            // If this is a payment status check
+            if (args[0].includes(`/payment/check/${paymentId}`)) {
+                result.then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.status === 'completed' && !document.getElementById('payment-success').classList.contains('d-none')) {
+                                // Payment just completed
+                                NotificationSystem.success(
+                                    'Your payment has been processed successfully. You are now connected to the internet.',
+                                    'Payment Successful'
+                                );
+                            } else if (data.status === 'failed' && !document.getElementById('payment-failed').classList.contains('d-none')) {
+                                // Payment just failed
+                                NotificationSystem.error(
+                                    'We couldn\'t process your payment. Please check your M-Pesa balance and try again.',
+                                    'Payment Failed'
+                                );
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error in fetch override:', error);
+                    });
+            }
+            
+            return result;
+        };
+        
+        return intervalId;
+    };
+</script>
+{% endblock %}

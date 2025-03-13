@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Dashboard</h1>
+
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dashboard-stat bg-primary text-white">
+                <div class="card-body">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-value">{{ usage_stats.total_time.formatted }}</div>
+                    <div class="stat-label">Total Time Used</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dashboard-stat bg-success text-white">
+                <div class="card-body">
+                    <i class="fas fa-database"></i>
+                    <div class="stat-value">{{ usage_stats.total_data|round(1) }} MB</div>
+                    <div class="stat-label">Total Data Used</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dashboard-stat bg-info text-white">
+                <div class="card-body">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <div class="stat-value">KES {{ usage_stats.total_spent|round(0) }}</div>
+                    <div class="stat-label">Total Spent</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dashboard-stat bg-warning text-white">
+                <div class="card-body">
+                    <i class="fas fa-wifi"></i>
+                    <div class="stat-value">{{ usage_stats.session_count }}</div>
+                    <div class="stat-label">Total Sessions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Session Card -->
+    {% if active_session %}
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-wifi me-2"></i> Active Session
+            </h5>
+        </div>
+        <div class="card-body">
+            <h6 class="mb-3">Package: {{ active_session.package.name }}</h6>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Started:</strong> {{ active_session.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Expires:</strong> {{ active_session.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Time remaining:</strong> <span id="countdown" class="session-timer" data-session-id="{{ active_session.id }}">Loading...</span></p>
+                    <p><strong>Speed:</strong> {{ active_session.package.download_speed }} kbps down / {{ active_session.package.upload_speed }} kbps up</p>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="progress mb-2">
+                        <div id="download-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p><small><strong>Downloaded:</strong> <span id="download-usage">0 MB</span></small></p>
+                </div>
+                <div class="col-md-6">
+                    <div class="progress mb-2">
+                        <div id="upload-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p><small><strong>Uploaded:</strong> <span id="upload-usage">0 MB</span></small></p>
+                </div>
+            </div>
+
+            <div class="mt-3 text-end">
+                <a href="{{ url_for('main.disconnect_session', session_id=active_session.id) }}" 
+                   class="btn btn-danger"
+                   onclick="return confirm('Are you sure you want to disconnect your active session?')">
+                    <i class="fas fa-power-off me-2"></i> Disconnect
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle me-2"></i> You don't have any active sessions. Purchase a package to get online.
+        <a href="{{ url_for('main.index') }}" class="alert-link">Browse packages</a>
+    </div>
+    {% endif %}
+
+    <!-- Usage Charts -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i> Daily Usage Time
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i> Daily Data Usage
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="dataChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session History -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-history me-2"></i> Session History
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if sessions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Package</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.package.name }}</td>
+                            <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ session.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                {% set duration = (session.end_time - session.start_time).total_seconds() %}
+                                {% set hours = (duration / 3600)|int %}
+                                {% set minutes = ((duration % 3600) / 60)|int %}
+                                {{ hours }}h {{ minutes }}m
+                            </td>
+                            <td>
+                                {% if session.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Ended</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No session history available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-money-bill-wave me-2"></i> Payment History
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Package</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ payment.package.name }}</td>
+                            <td>KES {{ payment.amount }}</td>
+                            <td>
+                                {% if payment.payment_method == 'mpesa' %}
+                                <span class="badge bg-success">M-Pesa</span>
+                                {% else %}
+                                <span class="badge bg-primary">{{ payment.payment_method }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% elif payment.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% else %}
+                                <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No payment history available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const countdownElement = document.getElementById('countdown');
+
+    if (countdownElement) {
+        const sessionId = countdownElement.dataset.sessionId;
+
+        // Initial update
+        updateSessionStatus(sessionId);
+
+        // Update every 5 seconds
+        setInterval(function() {
+            updateSessionStatus(sessionId);
+        }, 5000);
+    }
+
+    // Initialize usage charts
+    initializeCharts();
+});
+
+function updateSessionStatus(sessionId) {
+    fetch(`/session/${sessionId}/status`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.active) {
+                    // Update countdown
+                    const countdown = document.getElementById('countdown');
+                    const hours = data.remaining_time.hours;
+                    const minutes = data.remaining_time.minutes;
+                    const seconds = data.remaining_time.seconds;
+                    countdown.textContent = `${hours}h ${minutes}m ${seconds}s`;
+
+                    // Update usage bars
+                    updateUsageBar('download', data.usage.download, data.usage.download_formatted);
+                    updateUsageBar('upload', data.usage.upload, data.usage.upload_formatted);
+
+                    // If less than 5 minutes remaining, add warning color
+                    if (data.remaining_time.total_seconds < 300) {
+                        countdown.classList.add('text-danger');
+                    } else {
+                        countdown.classList.remove('text-danger');
+                    }
+                } else {
+                    // Session no longer active, refresh page
+                    window.location.reload();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating session status:', error);
+        });
+}
+
+function updateUsageBar(type, value, formattedValue) {
+    const maxUsage = 1024 * 1024 * 1024; // 1 GB as baseline
+    const percentage = Math.min(100, (value / maxUsage) * 100);
+
+    document.getElementById(`${type}-bar`).style.width = `${percentage}%`;
+    document.getElementById(`${type}-usage`).textContent = formattedValue;
+}
+
+function initializeCharts() {
+    // Get chart data from the server
+    const usageHistory = {{ usage_history|tojson }};
+
+    // Create time usage chart
+    const timeCtx = document.getElementById('timeChart');
+    if (timeCtx) {
+        new Chart(timeCtx, {
+            type: 'line',
+            data: {
+                labels: usageHistory.dates.map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Hours Used',
+                    data: usageHistory.hours,
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Hours'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Create data usage chart
+    const dataCtx = document.getElementById('dataChart');
+    if (dataCtx) {
+        new Chart(dataCtx, {
+            type: 'bar',
+            data: {
+                labels: usageHistory.dates.map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }),
+                datasets: [{
+                    label: 'Data Used (MB)',
+                    data: usageHistory.data_usage,
+                    backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                    borderColor: 'rgba(46, 204, 113, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'MB'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

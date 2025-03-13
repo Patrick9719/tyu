@@ -1,0 +1,262 @@
+
+{% extends "base.html" %}
+
+{% block title %}Internet Packages - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Page Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold mb-3">Choose Your Internet Package</h1>
+            <p class="lead text-muted">Select the package that best suits your needs.</p>
+        </div>
+
+        <!-- Package Selection Form -->
+        <form method="POST" action="{{ url_for('main.purchase') }}" id="package-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="package_id" id="selected_package_id" value="">
+
+            <!-- Packages Grid -->
+            <div class="row mb-5">
+                {% for package in packages %}
+                <div class="col-md-4 mb-4">
+                    <div class="card package-card h-100" id="package-{{ package.id }}">
+                        {% if package.name == 'Premium' %}
+                        <div class="package-popular">Popular</div>
+                        {% endif %}
+                        <div class="card-body text-center">
+                            <h3 class="mb-3">{{ package.name }}</h3>
+                            <div class="package-price">
+                                Ksh {{ package.price }}
+                                <span class="period">/{{ package.duration_hours }} hours</span>
+                            </div>
+                            <ul class="package-features">
+                                <li><i class="fas fa-tachometer-alt"></i> {{ package.download_speed }} kbps Download</li>
+                                <li><i class="fas fa-upload"></i> {{ package.upload_speed }} kbps Upload</li>
+                                <li><i class="fas fa-clock"></i> {{ package.duration_hours }} Hours</li>
+                                {% if package.data_limit_mb %}
+                                <li><i class="fas fa-database"></i> {{ package.data_limit_mb }} MB Data</li>
+                                {% else %}
+                                <li><i class="fas fa-infinity"></i> Unlimited Data</li>
+                                {% endif %}
+                            </ul>
+                            <button type="button" class="btn btn-outline-primary w-100 btn-select-package" data-package-id="{{ package.id }}">
+                                Select Package
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Payment Options -->
+            <div class="card mb-5">
+                <div class="card-header">
+                    <h4 class="mb-0">Payment Method</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check payment-option p-3 border rounded">
+                                <input class="form-check-input" type="radio" name="payment_method" id="mpesa" value="mpesa" checked>
+                                <label class="form-check-label d-flex align-items-center" for="mpesa">
+                                    <i class="fas fa-mobile-alt fa-2x me-3 text-primary"></i>
+                                    <div>
+                                        <span class="d-block fw-bold">M-Pesa</span>
+                                        <small class="text-muted">Pay using M-Pesa mobile money</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check payment-option p-3 border rounded">
+                                <input class="form-check-input" type="radio" name="payment_method" id="voucher" value="voucher">
+                                <label class="form-check-label d-flex align-items-center" for="voucher">
+                                    <i class="fas fa-ticket-alt fa-2x me-3 text-primary"></i>
+                                    <div>
+                                        <span class="d-block fw-bold">Voucher</span>
+                                        <small class="text-muted">Use a prepaid voucher code</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- M-Pesa Phone Number -->
+                    <div id="mpesa-details" class="mt-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <label for="phone_number" class="form-label">M-Pesa Phone Number</label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">+254</span>
+                                    <input type="tel" class="form-control" name="phone_number" id="phone_number" placeholder="7XX XXX XXX" required>
+                                </div>
+                                <div class="form-text">We'll send an STK push to this number for payment.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    You will receive an M-Pesa payment prompt on your phone. Please enter your PIN to complete the payment.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voucher Details -->
+                    <div id="voucher-details" class="mt-4 d-none">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <label for="voucher_code" class="form-label">Voucher Code</label>
+                                <input type="text" class="form-control" name="voucher_code" id="voucher_code" placeholder="Enter your voucher code">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Enter your voucher code exactly as it appears on your voucher card or receipt.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms and Conditions -->
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" name="terms" id="terms" required>
+                <label class="form-check-label" for="terms">
+                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a> and <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a>
+                </label>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-lg px-5" id="checkout-button" disabled>
+                    <i class="fas fa-shopping-cart me-2"></i> Proceed to Checkout
+                </button>
+            </div>
+        </form>
+
+        <!-- Terms Modal -->
+        <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="termsModalLabel">Terms & Conditions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>1. Introduction</h6>
+                        <p>These terms and conditions govern your use of our WiFi hotspot service.</p>
+                        
+                        <h6>2. Service Usage</h6>
+                        <p>You agree to use our service for lawful purposes only. Any illegal or unauthorized use will result in immediate termination without refund.</p>
+                        
+                        <h6>3. Payment & Refunds</h6>
+                        <p>All payments are final and non-refundable. Packages are valid for the specified duration from the time of purchase.</p>
+                        
+                        <h6>4. Service Limitations</h6>
+                        <p>We reserve the right to limit bandwidth usage or service quality based on network conditions and fair usage policies.</p>
+                        
+                        <h6>5. Privacy</h6>
+                        <p>We collect and process personal data as described in our Privacy Policy.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Modal -->
+        <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="privacyModalLabel">Privacy Policy</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>1. Information We Collect</h6>
+                        <p>When you use our service, we collect personal information such as your name, email address, phone number, MAC address, and payment information.</p>
+                        
+                        <h6>2. How We Use Your Information</h6>
+                        <p>We use your information to provide and improve our service, process payments, and communicate with you.</p>
+                        
+                        <h6>3. Data Security</h6>
+                        <p>We implement reasonable security measures to protect your personal information from unauthorized access, use, or disclosure.</p>
+                        
+                        <h6>4. Third-Party Services</h6>
+                        <p>We may use third-party services for payment processing and analytics. These services have their own privacy policies.</p>
+                        
+                        <h6>5. Your Rights</h6>
+                        <p>You have the right to access, correct, and delete your personal information. Contact us to exercise these rights.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle payment method selection
+    const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+    const mpesaDetails = document.getElementById('mpesa-details');
+    const voucherDetails = document.getElementById('voucher-details');
+    const phoneInput = document.getElementById('phone_number');
+    const voucherInput = document.getElementById('voucher_code');
+    
+    paymentRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (this.value === 'mpesa') {
+                mpesaDetails.classList.remove('d-none');
+                voucherDetails.classList.add('d-none');
+                phoneInput.setAttribute('required', '');
+                voucherInput.removeAttribute('required');
+            } else {
+                mpesaDetails.classList.add('d-none');
+                voucherDetails.classList.remove('d-none');
+                phoneInput.removeAttribute('required');
+                voucherInput.setAttribute('required', '');
+            }
+        });
+    });
+    
+    // Handle package selection and enable submit button
+    const packageButtons = document.querySelectorAll('.btn-select-package');
+    const termsCheckbox = document.getElementById('terms');
+    const checkoutButton = document.getElementById('checkout-button');
+    
+    function updateCheckoutButton() {
+        const packageSelected = document.getElementById('selected_package_id').value !== '';
+        const termsAccepted = termsCheckbox.checked;
+        
+        checkoutButton.disabled = !(packageSelected && termsAccepted);
+    }
+    
+    packageButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            const packageId = this.getAttribute('data-package-id');
+            selectPackage(packageId);
+            updateCheckoutButton();
+        });
+    });
+    
+    termsCheckbox.addEventListener('change', updateCheckoutButton);
+    
+    // Phone number validation
+    phoneInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        if (this.value.length > 9) {
+            this.value = this.value.slice(0, 9);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports & Analytics - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-chart-bar me-2"></i> Reports & Analytics</h1>
+            <div>
+                <a href="#" class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Print Report
+                </a>
+            </div>
+        </div>
+        
+        <!-- Date Range Selection -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" action="{{ url_for('admin.reports') }}" id="dateRangeForm">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="report_type" class="form-label">Report Type</label>
+                            <select id="report_type" name="report_type" class="form-select">
+                                <option value="all" {% if request.args.get('report_type') == 'all' %}selected{% endif %}>All Reports</option>
+                                <option value="revenue" {% if request.args.get('report_type') == 'revenue' %}selected{% endif %}>Revenue</option>
+                                <option value="usage" {% if request.args.get('report_type') == 'usage' %}selected{% endif %}>Usage</option>
+                                <option value="packages" {% if request.args.get('report_type') == 'packages' %}selected{% endif %}>Packages</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i> Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Summary ({{ start_date.strftime('%Y-%m-%d') }} to {{ end_date.strftime('%Y-%m-%d') }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card dashboard-stat bg-success text-white">
+                            <div class="card-body">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <div class="stat-value">KES {{ total_revenue }}</div>
+                                <div class="stat-label">Total Revenue</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card dashboard-stat bg-primary text-white">
+                            <div class="card-body">
+                                <i class="fas fa-shopping-cart"></i>
+                                <div class="stat-value">{{ total_sessions }}</div>
+                                <div class="stat-label">Total Sessions</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card dashboard-stat bg-info text-white">
+                            <div class="card-body">
+                                <i class="fas fa-users"></i>
+                                <div class="stat-value">{{ active_sessions }}</div>
+                                <div class="stat-label">Active Sessions</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card dashboard-stat bg-warning text-dark">
+                            <div class="card-body">
+                                <i class="fas fa-clock"></i>
+                                <div class="stat-value">{{ avg_session_hours|default(0)|round(1) }}</div>
+                                <div class="stat-label">Avg. Session Hours</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Daily Revenue Chart -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Daily Revenue</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="dailyRevenueChart"></canvas>
+                </div>
+                <script id="daily-revenue-data" type="application/json">
+                    {{ daily_revenue_data|tojson }}
+                </script>
+            </div>
+        </div>
+        
+        <!-- Package Popularity -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Package Popularity</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="packagePopularityChart"></canvas>
+                        </div>
+                        <script id="package-popularity-data" type="application/json">
+                            {{ package_popularity|tojson }}
+                        </script>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i> Package Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Package</th>
+                                        <th>Sessions</th>
+                                        <th>Revenue</th>
+                                        <th>Avg. Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in package_popularity %}
+                                    <tr>
+                                        <td>{{ item.name }}</td>
+                                        <td>{{ item.count }}</td>
+                                        <td>KES {{ item.revenue }}</td>
+                                        <td>KES {{ (item.revenue / item.count)|round(2) if item.count > 0 else 0 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Sessions by Time of Day -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i> Active Sessions by Time of Day</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="activeSessionsChart"></canvas>
+                </div>
+                <script id="active-sessions-data" type="application/json">
+                    {"labels": ["12am", "2am", "4am", "6am", "8am", "10am", "12pm", "2pm", "4pm", "6pm", "8pm", "10pm"], 
+                     "values": [5, 3, 2, 4, 10, 15, 20, 25, 30, 35, 25, 15]}
+                </script>
+            </div>
+        </div>
+        
+        <!-- Data Usage Report -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-database me-2"></i> Data Usage</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="dataUsageChart"></canvas>
+                </div>
+                <script id="data-usage-data" type="application/json">
+                    {"labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                     "download": [1024, 1500, 1300, 1700, 2100, 2500, 1800],
+                     "upload": [256, 320, 290, 350, 400, 450, 380]}
+                </script>
+            </div>
+        </div>
+        
+        <!-- Export Options -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-file-export me-2"></i> Export Options</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <a href="{{ url_for('admin.export_report', format='csv', start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary w-100 py-3">
+                            <i class="fas fa-file-csv fa-2x mb-2"></i><br>
+                            Export as CSV
+                        </a>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <a href="{{ url_for('admin.export_report', format='excel', start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d')) }}" class="btn btn-outline-success w-100 py-3">
+                            <i class="fas fa-file-excel fa-2x mb-2"></i><br>
+                            Export as Excel
+                        </a>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <a href="{{ url_for('admin.export_report', format='pdf', start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d')) }}" class="btn btn-outline-danger w-100 py-3">
+                            <i class="fas fa-file-pdf fa-2x mb-2"></i><br>
+                            Export as PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

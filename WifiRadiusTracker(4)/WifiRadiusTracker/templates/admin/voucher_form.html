@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Vouchers - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-ticket-alt me-2"></i> Generate Vouchers</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{{ url_for('admin.generate_vouchers') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.package_id.label(class="form-label") }}
+                        {{ form.package_id(class="form-select") }}
+                        {% for error in form.package_id.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.count.label(class="form-label") }}
+                            {{ form.count(class="form-control", type="number", min=1, max=100) }}
+                            {% for error in form.count.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Number of vouchers to generate (max 100).</div>
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.expiry_days.label(class="form-label") }}
+                            {{ form.expiry_days(class="form-control", type="number", min=1) }}
+                            {% for error in form.expiry_days.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Number of days until vouchers expire.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('admin.vouchers') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Vouchers
+                        </a>
+                        <div>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> About Vouchers</h5>
+            </div>
+            <div class="card-body">
+                <p>Vouchers are prepaid access codes that users can redeem to get internet access without creating an account.</p>
+                
+                <h6>Voucher Features:</h6>
+                <ul>
+                    <li>Each voucher is tied to a specific package with predefined duration and bandwidth</li>
+                    <li>Vouchers can expire after a set number of days if not used</li>
+                    <li>Vouchers can be printed or distributed digitally</li>
+                    <li>Each voucher can only be used once</li>
+                </ul>
+                
+                <h6>Voucher Distribution:</h6>
+                <p>After generation, you can print vouchers individually or in bulk from the vouchers management page.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Bandwidth Management - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-tachometer-alt me-2"></i> Bandwidth Management</h1>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-sliders-h me-2"></i> Default Bandwidth Settings
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.set_default_bandwidth') }}" method="post">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="default_download" class="form-label">Default Download Speed (kbps)</label>
+                            <input type="number" class="form-control" id="default_download" name="default_download" required min="64" step="64">
+                            <div class="form-text">This will be the default download speed for all users</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="default_upload" class="form-label">Default Upload Speed (kbps)</label>
+                            <input type="number" class="form-control" id="default_upload" name="default_upload" required min="64" step="64">
+                            <div class="form-text">This will be the default upload speed for all users</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Default Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-users me-2"></i> User-Specific Bandwidth Settings
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Download Speed (kbps)</th>
+                                <th>Upload Speed (kbps)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <form action="{{ url_for('admin.set_user_bandwidth', user_id=user.id) }}" method="post" class="row g-2">
+                                        <div class="col-md-6">
+                                            <input type="number" class="form-control" name="download_speed" placeholder="Download" required min="64" step="64">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="number" class="form-control" name="upload_speed" placeholder="Upload" required min="64" step="64">
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-save me-1"></i> Apply
+                                            </button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

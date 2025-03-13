@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Vouchers - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-ticket-alt me-2"></i> Manage Vouchers</h1>
+            <a href="{{ url_for('admin.generate_vouchers') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Generate Vouchers
+            </a>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" action="{{ url_for('admin.vouchers') }}" id="searchForm">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" name="search" id="search" class="form-control" placeholder="Search by voucher code..." value="{{ search_term }}">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="status" class="form-select" onchange="this.form.submit()">
+                                <option value="all" {% if status == 'all' %}selected{% endif %}>All Vouchers</option>
+                                <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="used" {% if status == 'used' %}selected{% endif %}>Used</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="package" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Packages</option>
+                                {% for package in packages %}
+                                <option value="{{ package.id }}" {% if request.args.get('package')|int == package.id %}selected{% endif %}>
+                                    {{ package.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bulk Action Form -->
+        <form id="bulkActionForm" method="post" action="{{ url_for('admin.vouchers_bulk_action') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" id="bulkAction" value="">
+
+            <!-- Vouchers Table -->
+            <div class="card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Vouchers List</h5>
+                    <div>
+                        <span class="badge bg-primary me-2">{{ vouchers.total }} total</span>
+                        <span class="badge bg-success me-2">
+                            {{ active_count }} active
+                        </span>
+                        <span class="badge bg-secondary">
+                            {{ used_count }} used
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if vouchers.items %}
+                    <div class="mb-3">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary btn-sm bulk-action-btn" 
+                                    data-action="print" disabled>
+                                <i class="fas fa-print me-1"></i> Print Selected
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm bulk-action-btn" 
+                                    data-action="delete" disabled>
+                                <i class="fas fa-trash me-1"></i> Delete Selected
+                            </button>
+                        </div>
+                        <span class="badge bg-primary ms-2 d-none">
+                            <span id="selectedCount">0</span> selected
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </div>
+                                    </th>
+                                    <th>Code</th>
+                                    <th>Package</th>
+                                    <th>Created</th>
+                                    <th>Expires</th>
+                                    <th>Status</th>
+                                    <th>Used By</th>
+                                    <th>Used At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for voucher in vouchers.items %}
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input item-checkbox" type="checkbox" 
+                                                   name="voucher_ids[]" value="{{ voucher.id }}"
+                                                   id="voucher-{{ voucher.id }}">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="voucher-code">{{ voucher.code }}</span>
+                                        <button type="button" class="btn btn-sm btn-link p-0 ms-1" 
+                                                onclick="copyToClipboard('{{ voucher.code }}', 'copy-btn-{{ voucher.id }}')">
+                                            <i class="fas fa-copy" id="copy-btn-{{ voucher.id }}"></i>
+                                        </button>
+                                    </td>
+                                    <td>{{ voucher.package.name }}</td>
+                                    <td>{{ voucher.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if voucher.expires_at %}
+                                            {{ voucher.expires_at.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            Never
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if voucher.is_used %}
+                                            <span class="badge bg-secondary">Used</span>
+                                        {% elif voucher.expires_at and voucher.expires_at < now %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if voucher.user %}
+                                            <a href="{{ url_for('admin.edit_user', user_id=voucher.user.id) }}">
+                                                {{ voucher.user.username }}
+                                            </a>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if voucher.used_at %}
+                                            {{ voucher.used_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2 justify-content-end">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#qrModal" data-voucher-code="{{ voucher.code }}">
+                                                <i class="fas fa-qrcode"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('{{ voucher.code }}', 'copy-btn-{{ voucher.id }}')">
+                                                <i class="fas fa-copy" id="copy-btn-{{ voucher.id }}"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-voucher-id="{{ voucher.id }}" data-code="{{ voucher.code }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination">
+                                {% if vouchers.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin.vouchers', page=vouchers.prev_num, search=search_term, status=status) }}">
+                                        Previous
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in vouchers.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                                    {% if page_num %}
+                                        {% if page_num == vouchers.page %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('admin.vouchers', page=page_num, search=search_term, status=status) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if vouchers.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin.vouchers', page=vouchers.next_num, search=search_term, status=status) }}">
+                                        Next
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                        <h4>No vouchers found</h4>
+                        <p>
+                            {% if search_term %}
+                            No vouchers match your search criteria "{{ search_term }}".
+                            <a href="{{ url_for('admin.vouchers') }}">Clear search</a>
+                            {% else %}
+                            There are no vouchers in the system yet.
+                            {% endif %}
+                        </p>
+                        <a href="{{ url_for('admin.generate_vouchers') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus-circle me-1"></i> Generate Vouchers
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Voucher Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete voucher <strong id="deleteVoucher"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrModalLabel">Voucher QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrCodeContainer" class="my-3"></div>
+                <p>Scan this QR code to redeem the voucher <strong id="qrVoucherCode"></strong></p>
+                <p class="text-muted small">Users can scan this code with their phone camera to automatically redeem the voucher</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadQrCode">
+                    <i class="fas fa-download me-1"></i> Download
+                </button>
+                <button type="button" class="btn btn-success" id="printQrCode">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+    // Handle delete modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const voucherId = button.getAttribute('data-voucher-id');
+                const code = button.getAttribute('data-code');
+
+                document.getElementById('deleteVoucher').textContent = code;
+                document.getElementById('deleteForm').action = `/admin/vouchers/${voucherId}/delete`;
+            });
+        }
+    });
+
+    // Copy voucher code to clipboard
+    function copyToClipboard(text, elementId) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                const element = document.getElementById(elementId);
+                element.className = 'fas fa-check text-success';
+
+                setTimeout(() => {
+                    element.className = 'fas fa-copy';
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Could not copy text: ', err);
+            });
+    }
+</script>
+{% endblock %}

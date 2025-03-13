@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-user-circle me-2"></i> My Profile</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{{ url_for('auth.profile') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control") }}
+                        {% for error in form.username.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control") }}
+                        {% for error in form.email.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone(class="form-control") }}
+                        {% for error in form.phone.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">Enter your phone number with country code (e.g., +254).</div>
+                    </div>
+                    
+                    <hr>
+                    <h5>Change Password</h5>
+                    <p class="text-muted small">Leave blank to keep your current password</p>
+                    
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.password(class="form-control", placeholder="New password") }}
+                            <button type="button" class="btn btn-outline-secondary toggle-password" data-target="#password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        {% for error in form.password.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.password2.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.password2(class="form-control", placeholder="Confirm new password") }}
+                            <button type="button" class="btn btn-outline-secondary toggle-password" data-target="#password2">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        {% for error in form.password2.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-grid mt-4">
+                        {{ form.submit(class="btn btn-primary btn-lg", value="Update Profile") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Role:</strong> {{ current_user.role|capitalize }}</p>
+                        <p><strong>MAC Address:</strong> {{ current_user.mac_address or 'Not set' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Account Created:</strong> {{ current_user.created_at.strftime('%Y-%m-%d') }}</p>
+                        <p><strong>Account Status:</strong> 
+                            {% if current_user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

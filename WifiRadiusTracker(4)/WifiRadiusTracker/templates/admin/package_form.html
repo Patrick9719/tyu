@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    {% if package %}
+                    <i class="fas fa-edit me-2"></i> 
+                    {% else %}
+                    <i class="fas fa-plus-circle me-2"></i> 
+                    {% endif %}
+                    {{ title }}
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% for error in form.name.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows=3) }}
+                        {% for error in form.description.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">Brief description of the package that will be shown to users.</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.price.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">KES</span>
+                                {{ form.price(class="form-control", type="number", step="0.01") }}
+                            </div>
+                            {% for error in form.price.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.duration_hours.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.duration_hours(class="form-control", type="number") }}
+                                <span class="input-group-text">hours</span>
+                            </div>
+                            {% for error in form.duration_hours.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.download_speed.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.download_speed(class="form-control", type="number") }}
+                                <span class="input-group-text">kbps</span>
+                            </div>
+                            {% for error in form.download_speed.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.upload_speed.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.upload_speed(class="form-control", type="number") }}
+                                <span class="input-group-text">kbps</span>
+                            </div>
+                            {% for error in form.upload_speed.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.data_limit_mb.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.data_limit_mb(class="form-control", type="number") }}
+                            <span class="input-group-text">MB</span>
+                        </div>
+                        {% for error in form.data_limit_mb.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">Leave empty for unlimited data.</div>
+                    </div>
+                    
+                    <div class="mb-3 form-check form-switch">
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
+                        <div class="form-text">Only active packages will be shown to users.</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('admin.packages') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Packages
+                        </a>
+                        <div>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Package Settings Help</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Speed Settings</h6>
+                        <ul>
+                            <li><strong>Basic browsing:</strong> 256-512 kbps</li>
+                            <li><strong>Email & social media:</strong> 512-1024 kbps</li>
+                            <li><strong>Standard video:</strong> 1024-2048 kbps</li>
+                            <li><strong>HD video:</strong> 2048+ kbps</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Duration Examples</h6>
+                        <ul>
+                            <li><strong>Hourly:</strong> 1-3 hours</li>
+                            <li><strong>Daily:</strong> 24 hours</li>
+                            <li><strong>Weekly:</strong> 168 hours (7 days)</li>
+                            <li><strong>Monthly:</strong> 720 hours (30 days)</li>
+                        </ul>
+                    </div>
+                </div>
+                <hr>
+                <p class="mb-0">
+                    <i class="fas fa-lightbulb text-warning me-1"></i>
+                    <strong>Tip:</strong> Find the right balance between speed and price. Higher speeds cost more in bandwidth but allow you to charge premium prices.
+                </p>
+            </div>
+        </div>
+        
+        {% if package %}
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Package Usage Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <h3>{{ package_stats.active_sessions|default(0) }}</h3>
+                        <p>Active Sessions</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <h3>{{ package_stats.total_sessions|default(0) }}</h3>
+                        <p>Total Sessions</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <h3>KES {{ package_stats.total_revenue|default(0) }}</h3>
+                        <p>Total Revenue</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

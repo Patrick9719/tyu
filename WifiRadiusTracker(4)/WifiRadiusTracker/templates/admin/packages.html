@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Packages - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-boxes me-2"></i> Manage Packages</h1>
+            <a href="{{ url_for('admin.new_package') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Add New Package
+            </a>
+        </div>
+        
+        <!-- Packages List -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Internet Packages</h5>
+            </div>
+            <div class="card-body">
+                {% if packages %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Price (KES)</th>
+                                <th>Duration</th>
+                                <th>Download Speed</th>
+                                <th>Upload Speed</th>
+                                <th>Data Limit</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for package in packages %}
+                            <tr>
+                                <td>{{ package.name }}</td>
+                                <td>{{ package.price }}</td>
+                                <td>{{ package.duration_hours }} hours</td>
+                                <td>{{ package.download_speed }} kbps</td>
+                                <td>{{ package.upload_speed }} kbps</td>
+                                <td>
+                                    {% if package.data_limit_mb %}
+                                        {{ package.data_limit_mb }} MB
+                                    {% else %}
+                                        Unlimited
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if package.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin.edit_package', package_id=package.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal" 
+                                                data-package-id="{{ package.id }}" data-package-name="{{ package.name }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                    <h4>No packages found</h4>
+                    <p>There are no internet packages in the system yet.</p>
+                    <a href="{{ url_for('admin.new_package') }}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus-circle me-1"></i> Add First Package
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Package Information Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Package Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>About Packages</h6>
+                        <p>Packages define the internet access plans available to users. Each package has specific duration, speed, and pricing.</p>
+                        
+                        <h6>Package Features:</h6>
+                        <ul>
+                            <li>Set different bandwidth limits for each package</li>
+                            <li>Define duration in hours</li>
+                            <li>Optional data limits</li>
+                            <li>Set pricing for each package</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Package Settings</h6>
+                        <p>When creating or editing packages, consider these settings:</p>
+                        <ul>
+                            <li><strong>Download/Upload Speed:</strong> Set in kilobits per second (kbps)</li>
+                            <li><strong>Duration:</strong> How long the package is valid after activation</li>
+                            <li><strong>Data Limit:</strong> Optional cap on total data usage</li>
+                            <li><strong>Active Status:</strong> Only active packages will be shown to users</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Package Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Delete Package</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the package <strong id="deletePackageName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone. All associated data will be permanently deleted.</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Deleting a package that is in use may cause issues for users with active sessions.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Package</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+<script>
+    // Handle delete modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const packageId = button.getAttribute('data-package-id');
+                const packageName = button.getAttribute('data-package-name');
+                
+                document.getElementById('deletePackageName').textContent = packageName;
+                document.getElementById('deleteForm').action = `/admin/packages/${packageId}/delete`;
+            });
+        }
+    });
+</script>
+{% endblock %}

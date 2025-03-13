@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Home - MikroTik WiFi Hotspot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Hero Section -->
+        <div class="card bg-gradient-primary text-white mb-5">
+            <div class="card-body p-5">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <h1 class="display-4 fw-bold mb-4">Fast & Reliable WiFi</h1>
+                        <p class="lead mb-4">Connect to high-speed internet with our easy-to-use hotspot. Choose a package that suits your needs and get online in seconds.</p>
+                        <div class="d-flex gap-3">
+                            <a href="{{ url_for('main.packages') }}" class="btn btn-light btn-lg">
+                                <i class="fas fa-wifi me-2"></i> Browse Packages
+                            </a>
+                            {% if not current_user.is_authenticated %}
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-user-plus me-2"></i> Register
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-5 d-none d-md-block text-center">
+                        <i class="fas fa-wifi" style="font-size: 180px; opacity: 0.6;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <h2 class="text-center mb-4">Why Choose Our Hotspot</h2>
+        <div class="row mb-5">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 hover-scale">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-bolt text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="h4 mb-3">High Speed</h3>
+                        <p class="text-muted">Enjoy fast download and upload speeds for smooth browsing, streaming, and gaming.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 hover-scale">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-shield-alt text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Secure Connection</h3>
+                        <p class="text-muted">Your connection is encrypted and secured against unauthorized access.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 hover-scale">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-credit-card text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="h4 mb-3">Easy Payment</h3>
+                        <p class="text-muted">Pay securely via M-Pesa or use pre-paid vouchers for quick access.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packages Preview -->
+        <h2 class="text-center mb-4">Popular Packages</h2>
+        <div class="row mb-5">
+            {% for package in packages %}
+            <div class="col-md-4 mb-4">
+                <div class="card package-card h-100">
+                    {% if loop.first %}
+                    <div class="package-popular">Popular</div>
+                    {% endif %}
+                    <div class="card-body text-center">
+                        <h3 class="mb-3">{{ package.name }}</h3>
+                        <div class="package-price">
+                            Ksh {{ package.price }}
+                            <span class="period">/{{ package.duration_hours }} hours</span>
+                        </div>
+                        <ul class="package-features">
+                            <li><i class="fas fa-tachometer-alt"></i> {{ package.download_speed }} kbps Download</li>
+                            <li><i class="fas fa-upload"></i> {{ package.upload_speed }} kbps Upload</li>
+                            <li><i class="fas fa-clock"></i> {{ package.duration_hours }} Hours</li>
+                            {% if package.data_limit_mb %}
+                            <li><i class="fas fa-database"></i> {{ package.data_limit_mb }} MB Data</li>
+                            {% else %}
+                            <li><i class="fas fa-infinity"></i> Unlimited Data</li>
+                            {% endif %}
+                        </ul>
+                        <a href="{{ url_for('main.packages') }}" class="btn btn-primary w-100">Select Package</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Voucher Section -->
+        <div class="card bg-dark mb-5">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <h3 class="mb-3">Have a Voucher Code?</h3>
+                        <p class="mb-4">Redeem your voucher code to get instant access to our WiFi network.</p>
+                        <form method="POST" action="{{ url_for('main.redeem_voucher') }}" class="row g-3">
+                            {{ voucher_form.csrf_token }}
+                            <div class="col-md-8">
+                                {{ voucher_form.code(class="form-control form-control-lg", placeholder="Enter Voucher Code") }}
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">Redeem</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-5 d-none d-md-block text-center">
+                        <i class="fas fa-ticket-alt" style="font-size: 150px; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <h2 class="text-center mb-4">How It Works</h2>
+        <div class="row mb-5">
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <span class="text-white fw-bold" style="font-size: 2rem;">1</span>
+                        </div>
+                        <h4 class="mb-3">Choose Package</h4>
+                        <p class="text-muted">Select the package that best fits your internet needs.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <span class="text-white fw-bold" style="font-size: 2rem;">2</span>
+                        </div>
+                        <h4 class="mb-3">Make Payment</h4>
+                        <p class="text-muted">Pay securely via M-Pesa or redeem a voucher code.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <span class="text-white fw-bold" style="font-size: 2rem;">3</span>
+                        </div>
+                        <h4 class="mb-3">Connect</h4>
+                        <p class="text-muted">Follow the simple instructions to connect to our network.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                            <span class="text-white fw-bold" style="font-size: 2rem;">4</span>
+                        </div>
+                        <h4 class="mb-3">Enjoy</h4>
+                        <p class="text-muted">Start browsing with our high-speed internet connection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="card bg-gradient-secondary text-white mb-5">
+            <div class="card-body p-5 text-center">
+                <h2 class="mb-4">Ready to Get Started?</h2>
+                <p class="lead mb-4">Choose from our range of packages or redeem a voucher to start browsing.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('main.packages') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-tag me-2"></i> View Packages
+                    </a>
+                    {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i> Login
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
